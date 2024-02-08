@@ -10,7 +10,9 @@ from subprocess import SubprocessError
 from typing import Optional, List, Dict
 from urllib.parse import urlparse
 
+import redo
 import requests
+from requests.exceptions import SSLError, ReadTimeout
 
 from awsglue_rclone.config import Config
 from awsglue_rclone.utils import nio_execute_command, execute_command
@@ -52,7 +54,7 @@ class Installation:
             self._binary_path = self.name
             return True
 
-        if self.executable():
+        if self.exists(self.binary_path) and self.executable():
             return True
 
         self._binary_path = self._binary_path or os.path.join(LOCAL_BIN_PATH, self.name)
@@ -62,7 +64,8 @@ class Installation:
         temp_dir = tempfile.mkdtemp()
         with zipfile.ZipFile(zip_pkg, "r") as zip_ref:
             zip_ref.extractall(temp_dir)
-        pkg_name = os.path.basename(zip_pkg)
+        pkg_path = Path(zip_pkg)
+        pkg_name = pkg_path.name.replace(pkg_path.suffix, "")
         tmp_file = Path(temp_dir) / pkg_name / self.name
         shutil.move(tmp_file, self.binary_path)
         shutil.rmtree(temp_dir)
@@ -71,7 +74,7 @@ class Installation:
         temp_dir = tempfile.mkdtemp()
         pkg_name = os.path.basename(urlparse(self.url).path)
         pkg = Path(temp_dir) / pkg_name
-        with requests.get(self.url, stream=True) as r:
+        with requests.get(self.url, stream=True, timeout=30) as r:
             r.raise_for_status()
             with open(pkg, "wb") as f:
                 for chunk in r.iter_content(chunk_size=1024 * 1024):
@@ -91,13 +94,24 @@ class Installation:
             raise FileNotFoundError(f"Please download {self.name!r} firstly")
         return os.access(self.binary_path, os.X_OK)
 
+    @redo.retriable(
+        attempts=5,
+        sleeptime=10,
+        max_sleeptime=300,
+        sleepscale=1,
+        retry_exceptions=(ReadTimeout, SSLError),
+    )
     def download(self):
         if self.exists(self.binary_path):
             return
-        log(f"Installing {self.name} to {self.binary_path!r}")
+        log.info(f"Installing {self.name} to {self.binary_path!r}")
         Path(self.binary_path).parent.mkdir(parents=True, exist_ok=True)
         if self.url.startswith("https://") and self.url.endswith(".zip"):
-            self._download()
+            try:
+                self._download()
+            except (SSLError, ReadTimeout) as e:
+                log.warning(f"Download failed: {e}, retrying...")
+                raise e
         else:
             raise ValueError(f"Invalid download url: {self.url}")
 
