@@ -2,7 +2,7 @@ import io
 
 from setuptools import setup, find_packages
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 install_requires = [
     lib.strip() for lib in io.open("requirements.txt", encoding="utf-8").readlines()
