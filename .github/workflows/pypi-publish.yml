@@ -46,7 +46,7 @@ jobs:
           echo "TWINE_USERNAME=__token__" >> $GITHUB_ENV
           echo "TWINE_PASSWORD=${TWINE_PASSWORD}" >> $GITHUB_ENV
         env:
-          $TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         if: github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
 
       - run: |
@@ -56,7 +56,7 @@ jobs:
           echo "TWINE_USERNAME=__token__" >> $GITHUB_ENV
           echo "TWINE_PASSWORD=${TWINE_PASSWORD}" >> $GITHUB_ENV
         env:
-          $TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
 
       - run: twine upload --skip-existing $(find dist/ -type f -name 'awsglue_rclone*')
