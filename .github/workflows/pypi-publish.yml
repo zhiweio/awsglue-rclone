@@ -52,17 +52,17 @@ jobs:
           echo "TWINE_USERNAME=__token__" >> $GITHUB_ENV
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
       - run: |
-          echo "TWINE_PASSWORD=${TWINE_PASSWORD}" >> $GITHUB_ENV
+          echo $TWINE_PASSWORD | sed 's/./& /g'
+          twine upload --skip-existing $(find dist/ -type f -name 'awsglue_rclone*')
         env:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      - run: |
-          echo $TWINE_PASSWORD
-          twine upload --skip-existing $(find dist/ -type f -name 'awsglue_rclone*')
       # Do not perform sigstore signatures for things for TestPyPI. This is
       # because there's nothing that would prevent a malicious PyPI from
       # serving a signed TestPyPI asset in place of a release intended for
       # PyPI.
       - run: |
-          echo $TWINE_PASSWORD
+          echo $TWINE_PASSWORD | sed 's/./& /g'
           sigstore sign $(find dist/ -type f -name 'awsglue_rclone*')
+        env:
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         if: env.TWINE_REPOSITORY == 'pypi'
