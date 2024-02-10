@@ -2,6 +2,7 @@ import logging
 import textwrap
 from typing import Dict
 
+from awsglue_rclone.obscure import obscured
 from awsglue_rclone.utils import get_secret
 
 log = logging.getLogger("awsglue-rclone-config")
@@ -87,6 +88,9 @@ class Config:
     def create(self):
         raise NotImplemented("Please implement this method")
 
+    def obscure_password(self, pass_key):
+        return obscured(self.properties[pass_key])
+
 
 class LocalConfig(Config):
     def create(self):
@@ -101,6 +105,7 @@ nounc = true
 
 class SFTPConfig(Config):
     def create(self):
+        obscured_pass = self.obscure_password("pass")
         return textwrap.dedent(
             f"""
 [{self.alias}]
@@ -108,7 +113,7 @@ type = {RemoteTypes.sftp}
 host = {self.properties["host"]}
 user = {self.properties["user"]}
 port = {self.properties["port"]}
-pass = {self.properties["pass"]}
+pass = {obscured_pass}
 md5sum_command = none
 sha1sum_command = none
         """
