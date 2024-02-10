@@ -4,7 +4,13 @@ awsglue-rclone is a wrapper for RClone designed for use with AWS Glue Python She
 
 ## Installation
 
-Install awsglue-rclone from source:
+Install from PyPI:
+
+```shell
+$ python3 -m pip install awsglue-rclone
+```
+
+Install from source:
 
 ```shell
 $ git clone https://github.com/zhiweio/awsglue-rclone.git && cd awsglue-rclone/
